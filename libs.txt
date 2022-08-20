@@ -1,0 +1,3 @@
+libcnvrt.a cnvrt.o
+libpow.a pow.o
+libprint.a print.o cnvrt.o
