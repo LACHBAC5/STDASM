@@ -3,6 +3,17 @@
 .section .text
 .extern _start
 .globl pow
+
+# FUNCTION "pow"
+# DESCRIPTION
+# Raises a number to a power
+# INPUT
+# %st(0)=number
+# %st(1)=power
+# OUTPUT
+# %st(0)=new number
+# NOTE
+# very expensive
 pow:
     fyl2x               # %st(0)=log2(%st(0)^%st(1)) && pop
     fld %st(0)          # copy %st(0)

@@ -11,13 +11,25 @@
 .globl stoui
 .globl stod
 
+
+# function "itos"
+# DESCRIPTION
+# Convert an integer to a string
+# INPUT:
+# %rax=number
+# %rbx=buffer
+# OUTPUT
+# %rax=chars written
+# REGS
+# changes %rax
+# needs 2 FPU slots
 itos:
     # check sign
-    cmpq $0, %rax           # compare to 0
-    jg 1f                   # if it is higher skip to 1
-    movb $45, (%rbx)        # load '-' at m8 %rbx 
-    inc %rbx                # inc pointer %rbx
-    neg %rax                # negate x so it is positive
+    cmpq $0, %rax               # compare to 0
+    jg 1f                       # if it is higher skip to 1
+    movb $45, (%rbx)            # load '-' at m8 %rbx 
+    inc %rbx                    # inc pointer %rbx
+    neg %rax                    # negate x so it is positive
     1:
 uitos:
     # save regs
@@ -61,6 +73,18 @@ uitos:
     popq %rbx
     ret
 
+# function "dtos"
+# DESCRIPTION
+# Convert a double to a string
+# INPUT
+# %rax=double
+# %rbx=buffer
+# OUTPUT
+# %rax=chars written
+# REGS
+# changes %xmm0, %xmm1, %xmm2
+# changes %rax
+# calls itos
 dtos:
     # save regs
     pushq %rbx
@@ -69,7 +93,7 @@ dtos:
     subq $8, %rsp
 
     #           unwind loop to extract initial integer part
-    movq (%rax), %xmm0          # load double floating-point
+    movq %rax, %xmm0            # load double floating-point
     roundsd $3, %xmm0, %xmm1    # copy and truncate value
     subsd %xmm1, %xmm0          # sub truncated and floating-point values
     cvtsd2si %xmm1, %rax        # copy truncated value in gp reg
@@ -112,6 +136,18 @@ dtos:
     subq %rbx, %rax             # sub last ptr from first ptr
     ret
 
+
+# FUCNTION "stoi"
+# DESCRIPTION
+# Converts a string to an integer
+# INPUT
+# %rax=buffer
+# %rbx=buffer_length
+# OUTPUT
+# %rax=number
+# REGS
+# changes %rax, %rbx
+# calls stoui
 stoi:
     # save regs
     pushq %r8
@@ -138,6 +174,16 @@ stoi:
     popq %r8
     ret
 
+# FUNCTION "stoui"
+# DESCRIPTION
+# Converts a string into unsigned integer
+# INPUT
+# %rax=buffer
+# %rbx=buffer_length
+# OUTPUT
+# %rax=number
+# REGS
+# changes %rax, %rbx
 stoui:
     # save regs
     pushq %r8
@@ -169,6 +215,17 @@ stoui:
     popq %r8
     ret
 
+# FUNCTION "stod"
+# DESCRIPTION
+# Convert a string to a double
+# INPUT
+# %rax=buffer
+# %rbx=buffer_len
+# OUPUT
+# %xmm0=number
+# REGS
+# changes %xmm0, %xmm1, %xmm2
+# changes %rax, %rbx
 stod:
     # save regs
     pushq %r8

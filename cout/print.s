@@ -8,10 +8,26 @@
 # formated print
 .globl print
 
+# FUNCTION PRINT
+# DESCRIPTION
+# Print a formated string
+# INPUT
+# %rax=buffer
+# %rbx=buffer_length
+# values=stack
+# OUTPUT
+# Terminal text
+# REGS
+# changes %rax, %rbx
+
 print:
     pushq %rbp
     movq %rsp, %rbp
     addq $8, %rbp
+    pushq %rcx
+    pushq %rdx
+    pushq %rsi
+    pushq %rdi
     pushq %r8 
     pushq %r9
     pushq %r10
@@ -83,5 +99,9 @@ print:
     popq %r10
     popq %r9
     popq %r8
+    popq %rdi
+    popq %rsi
+    popq %rdx
+    popq %rcx
     popq %rbp
     ret
