@@ -4,13 +4,13 @@
 
 **composition**
 
-A stdasm/ folder with many sub-folders like stdasm/string/ each of which containing .s files.
+A stdasm/ folder with many sub-folders like stdasm/string/ each containing .s files.
 
 **compilation**
 
 Running make compiles **libcmple.c** and each **.s file** from each sub-folder into .o file into stdasm/.
 
-If **libcmple.c** is compiled for the first time, ./libcmple.out is run which uses the **ar** utility to combine .o files into .a files
+If any **.s files** are compiled, ./libcmple.out is run which uses the **ar** utility to combine .o files into .a files
 
 **info**
 
