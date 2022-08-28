@@ -4,7 +4,6 @@
 .extern _start
 # to string conversions
 .globl itos
-.globl uitos
 .globl dtos
 # from string conversions
 .globl stoi
@@ -20,25 +19,23 @@
 # %rbx=buffer
 # OUTPUT
 # %rax=chars written
-# REGS
-# changes %rax
-# needs 2 FPU slots
 itos:
-    # check sign
-    cmpq $0, %rax               # compare to 0
-    jg 1f                       # if it is higher skip to 1
-    movb $45, (%rbx)            # load '-' at m8 %rbx 
-    inc %rbx                    # inc pointer %rbx
-    neg %rax                    # negate x so it is positive
-    1:
-uitos:
     # save regs
     pushq %rbx
     pushq %rdx
     pushq %r8
     # save 8 bytes from stack
     subq $8, %rsp
+    movq $0, (%rsp)
 
+    # check sign
+    cmpq $0, %rax               # compare to 0
+    jg 1f                       # if it is higher skip to 1
+    jz 2f
+    movb $45, (%rbx)            # load '-' at m8 %rbx 
+    inc %rbx                    # inc pointer %rbx
+    neg %rax                    # negate x so it is positive
+    1:
     movq %rax, (%rsp)           # save x to memory for the FPU
     # calculate number of base10 digits
     fld1                        # load 1
@@ -48,6 +45,7 @@ uitos:
     fmulp %st(0), %st(1)        # log10(2)*log2(x)=log10(x)
     fisttpl (%rsp)              # truncate+pop
     addq (%rsp), %rbx           # add result to pointer
+    2:
     
     # convert number starting from least significant
     # saving into rightmost string place
@@ -64,7 +62,7 @@ uitos:
     # gen output -> (chars added)-1
     movq (%rsp), %rax
     inc %rax
-
+    
     # return 8 bytes to the stack
     addq $8, %rsp
     # restore regs
@@ -81,25 +79,23 @@ uitos:
 # %rbx=buffer
 # OUTPUT
 # %rax=chars written
-# REGS
-# changes %xmm0, %xmm1, %xmm2
-# changes %rax
-# calls itos
 dtos:
     # save regs
     pushq %rbx
     pushq %r8
-    # save 8 bytes from stack
-    subq $8, %rsp
+    subq $32, %rsp
+    movsd %xmm0, 24(%rsp)
+    movsd %xmm1, 16(%rsp)
+    movsd %xmm2, 8(%rsp)
 
     #           unwind loop to extract initial integer part
-    movq %rax, %xmm0            # load double floating-point
+    movq %rax, %xmm0
     roundsd $3, %xmm0, %xmm1    # copy and truncate value
     subsd %xmm1, %xmm0          # sub truncated and floating-point values
     cvtsd2si %xmm1, %rax        # copy truncated value in gp reg
     #       check sign
     cmpq $0, %rax               # cmp integer part with 0
-    jg 1f                       # negate if below
+    jge 1f                       # negate if below
     movl $0, (%rsp)             # save (32)0 at low
     movl $2147483648, 4(%rsp)   # save 1,(31)0 at high
     movq (%rsp), %xmm1          # move result into xmm reg
@@ -127,9 +123,11 @@ dtos:
     cmpq $0, %rax
     ja 1b
 
-    # return 8 bytes to stack
-    addq $8, %rsp
-    #           calculate length + restore regs
+    #           calculate length, restore regs
+    movsd 8(%rsp), %xmm2
+    movsd 16(%rsp), %xmm1
+    movsd 24(%rsp), %xmm0
+    addq $32, %rsp
     popq %r8
     movq %rbx, %rax             # copy pointer to last char
     popq %rbx                   # restore caller reg/pointer to buffer
@@ -150,6 +148,8 @@ dtos:
 # calls stoui
 stoi:
     # save regs
+    pushq %rax
+    pushq %rbx
     pushq %r8
 
     # check sign
@@ -172,6 +172,8 @@ stoi:
 
     # retore regs
     popq %r8
+    popq %rbx
+    popq %rax
     ret
 
 # FUNCTION "stoui"
@@ -182,10 +184,9 @@ stoi:
 # %rbx=buffer_length
 # OUTPUT
 # %rax=number
-# REGS
-# changes %rax, %rbx
 stoui:
     # save regs
+    pushq %rbx
     pushq %r8
     pushq %r9
     pushq %r10
@@ -213,6 +214,7 @@ stoui:
     popq %r10
     popq %r9
     popq %r8
+    popq %rbx
     ret
 
 # FUNCTION "stod"
@@ -223,16 +225,16 @@ stoui:
 # %rbx=buffer_len
 # OUPUT
 # %xmm0=number
-# REGS
-# changes %xmm0, %xmm1, %xmm2
-# changes %rax, %rbx
 stod:
     # save regs
+    pushq %rax
+    pushq %rbx
     pushq %r8
     pushq %r9
     pushq %r10
-
-    subq $8, %rsp               # save 8 bytes from stack
+    subq $24, %rsp
+    movsd %xmm1, 8(%rsp)
+    movsd %xmm2, (%rsp)
 
     #       make sign mask
     movl $0, (%rsp)             # save (32)0 at low
@@ -274,6 +276,7 @@ stod:
 
     movq $10, %r8
     cvtsi2sd %r8, %xmm2
+    pxor %xmm0, %xmm0
     #       write floating-point part
     dec %rbx                    # dec length because of '.'
     addq %rbx, %rax             # add length to buffer pointer
@@ -295,9 +298,13 @@ stod:
     movq (%rsp), %xmm1          # load mask
     xorpd %xmm1, %xmm0          # apply sign
 
-    addq $8, %rsp               # return 8 bytes to stack
-
+    #       restore regs
+    movsd (%rsp), %xmm2
+    movsd 8(%rsp), %xmm1
+    addq $24, %rsp
     popq %r10
     popq %r9
     popq %r8
+    popq %rbx
+    popq %rax
     ret

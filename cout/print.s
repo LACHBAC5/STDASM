@@ -70,7 +70,7 @@ print:
     movq (%rbp), %rax
     movq %rsp, %rbx
     call itos
-    
+
     3:
     movq %rax, %rdx
     movq $1, %rax
