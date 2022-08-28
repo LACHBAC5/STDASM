@@ -28,11 +28,13 @@ itos:
     subq $8, %rsp
     movq $0, (%rsp)
 
+    movq $0, %r8
     # check sign
     cmpq $0, %rax               # compare to 0
     jg 1f                       # if it is higher skip to 1
     jz 2f
-    movb $45, (%rbx)            # load '-' at m8 %rbx 
+    movq $1, %r8
+    movb $45, (%rbx)            # load '-' at m8 %rbx
     inc %rbx                    # inc pointer %rbx
     neg %rax                    # negate x so it is positive
     1:
@@ -46,6 +48,7 @@ itos:
     fisttpl (%rsp)              # truncate+pop
     addq (%rsp), %rbx           # add result to pointer
     2:
+    addq %r8, (%rsp)
     
     # convert number starting from least significant
     # saving into rightmost string place
